@@ -32,7 +32,7 @@ The question bank (`questions.js`) is not included in this repo. You need to wri
 | `accept` | `fib` only | Extra typed answers that also count as correct. |
 | `explain` | no | Shown after you answer. |
 
-Writing those objects by hand is tedious, so the easiest way is to use small helper functions that build them for you and generate IDs from the prompt text. Copy this template into `questions.js` and replace the example questions:
+Copy this template into `questions.js` and replace the example questions:
 
 ```js
 // M = multiple choice, T = true/false, F = fill in the blank (typed).
