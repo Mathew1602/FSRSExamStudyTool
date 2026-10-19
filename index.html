@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cloud Economics Cram</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <h1>Cloud Economics Cram</h1>
+      <span class="sub">Weeks 1–2 · Pricing Models · Lab 6 · FSRS review</span>
+    </div>
+    <div class="counters" id="counters"></div>
+  </header>
+
+  <div class="controls">
+    <label>Topic
+      <select id="filter"></select>
+    </label>
+    <label class="check"><input type="checkbox" id="missedOnly"> Missed only</label>
+    <div class="spacer"></div>
+    <button id="restoreBtn" class="ghost" type="button" hidden></button>
+    <button id="estimateBtn" class="ghost toggle" type="button" aria-controls="estimatePanel" aria-expanded="false">Time left ▸</button>
+    <button id="backupBtn" class="ghost toggle" type="button" aria-controls="backupPanel" aria-expanded="false">Backup: off ▸</button>
+    <button id="statsBtn" class="ghost" type="button">Stats</button>
+    <button id="resetBtn" class="ghost danger" type="button">Reset progress</button>
+  </div>
+
+  <div class="progress" aria-hidden="true"><div class="bar" id="progressBar"></div></div>
+
+  <main>
+    <section class="card" id="card">
+      <div class="meta">
+        <span class="tag" id="tagWeek"></span>
+        <span class="tag" id="tagTopic"></span>
+        <span class="tag type" id="tagType"></span>
+        <span class="tag again" id="tagAgain" hidden>Missed before</span>
+        <button id="removeBtn" class="remove" type="button" title="Remove this question from your bank (you can restore it later)">Remove question</button>
+      </div>
+      <p class="prompt" id="prompt"></p>
+
+      <div id="choices" class="choices"></div>
+
+      <form id="fibForm" class="fib" autocomplete="off" hidden>
+        <input id="fibInput" type="text" placeholder="Type your answer (spelling counts)" spellcheck="false" autocapitalize="off">
+        <button type="submit" class="primary">Check</button>
+      </form>
+
+      <div id="feedback" class="feedback" hidden>
+        <p class="verdict" id="verdict"></p>
+        <p class="correct" id="correctAnswer"></p>
+        <p class="explain" id="explain"></p>
+        <div class="actions" id="actions"></div>
+      </div>
+      <p class="sr-only" id="announce" aria-live="polite"></p>
+    </section>
+
+    <section class="card backup" id="estimatePanel" hidden>
+      <div class="panel-head">
+        <h2>Time to see the rest: <span id="estimateTotal"></span></h2>
+        <button id="estimateHide" class="ghost small" type="button">Hide</button>
+      </div>
+      <p class="estimate-mastery">Time to full mastery: <b id="masteryTotal"></b></p>
+      <label class="pace">Pace
+        <select id="paceMode">
+          <option value="auto">Auto (your pace)</option>
+          <option value="fast">Fast</option>
+          <option value="normal">Normal</option>
+          <option value="slow">Slow</option>
+        </select>
+      </label>
+      <ul class="estimate-lines" id="estimateBody"></ul>
+      <p class="hint">Counts only the current Topic filter. Doesn't include later spaced-review sessions.</p>
+    </section>
+
+    <section class="card backup" id="backupPanel" hidden>
+      <div class="panel-head">
+        <h2>Backup file</h2>
+        <button id="backupHide" class="ghost small" type="button">Hide</button>
+      </div>
+      <p class="hint" id="backupStatus"></p>
+      <div class="backup-actions">
+        <button id="backupCreate" class="ghost" type="button">Create backup file…</button>
+        <button id="backupOpen" class="ghost" type="button">Use existing backup file…</button>
+        <button id="backupReconnect" class="ghost" type="button" hidden>Reconnect</button>
+        <button id="backupDisconnect" class="ghost" type="button" hidden>Stop using file</button>
+      </div>
+      <p class="hint">Manual copy (any browser, or to move progress to another computer):</p>
+      <div class="backup-actions">
+        <button id="backupDownload" class="ghost" type="button">Download backup</button>
+        <button id="backupImport" class="ghost" type="button">Import backup…</button>
+        <input id="backupImportFile" type="file" accept=".json,application/json" hidden>
+      </div>
+    </section>
+
+    <section class="card stats" id="stats" hidden>
+      <h2>Accuracy by topic</h2>
+      <p class="hint">Weakest topics first. Use the Topic filter to drill one.</p>
+      <div id="statsBody"></div>
+    </section>
+  </main>
+
+  <footer class="hint">
+    Keys: <kbd>1</kbd>–<kbd>4</kbd> pick an answer · <kbd>Enter</kbd> check / continue · after a correct answer <kbd>1</kbd> Hard <kbd>2</kbd> Good <kbd>3</kbd> Easy
+  </footer>
+
+  <script src="questions.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
