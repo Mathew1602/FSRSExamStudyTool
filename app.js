@@ -138,6 +138,14 @@
       });
       s.idScheme = ID_SCHEME;
     }
+    // a reworded question can list its old id(s) in q.prev to keep its progress
+    QUESTIONS.forEach(function (q) {
+      (q.prev || []).forEach(function (old) {
+        ["cards", "removed"].forEach(function (k) {
+          if (old in s[k] && !(q.id in s[k])) s[k][q.id] = s[k][old];
+        });
+      });
+    });
     Object.keys(s.removed).forEach(function (id) { if (!byId[id] || !s.removed[id]) delete s.removed[id]; });
     QUESTIONS.forEach(function (q) {
       // fill in any missing/damaged fields so selection never sees undefined or NaN
@@ -434,7 +442,7 @@
     counters: $("counters"), filter: $("filter"), missedOnly: $("missedOnly"),
     statsBtn: $("statsBtn"), resetBtn: $("resetBtn"), bar: $("progressBar"),
     card: $("card"), tagWeek: $("tagWeek"), tagTopic: $("tagTopic"), tagType: $("tagType"), tagAgain: $("tagAgain"),
-    prompt: $("prompt"), choices: $("choices"), fibForm: $("fibForm"), fibInput: $("fibInput"),
+    prompt: $("prompt"), code: $("code"), codeBody: $("codeBody"), choices: $("choices"), fibForm: $("fibForm"), fibInput: $("fibInput"),
     feedback: $("feedback"), verdict: $("verdict"), correct: $("correctAnswer"), explain: $("explain"), actions: $("actions"),
     stats: $("stats"), statsBody: $("statsBody"), removeBtn: $("removeBtn"), restoreBtn: $("restoreBtn"),
     announce: $("announce"),
@@ -547,6 +555,60 @@
     });
   }
 
+  // Fills el with text, turning `backtick` spans into inline <code>.
+  function setRich(el, text) {
+    el.textContent = "";
+    String(text || "").split("`").forEach(function (part, i) {
+      if (!part) return;
+      if (i % 2) { var c = document.createElement("code"); c.textContent = part; el.appendChild(c); }
+      else el.appendChild(document.createTextNode(part));
+    });
+  }
+
+  // Small Python highlighter for question code. Enough to make it readable, not a full lexer.
+  var PY_KEYWORDS = "and as assert break class continue def del elif else except False finally for from global if import in is lambda None nonlocal not or pass raise return True try while with yield";
+  var PY_BUILTINS = "print len range list dict set tuple int float str round sum min max abs sorted zip enumerate type isinstance";
+  var KW = {}, BI = {};
+  PY_KEYWORDS.split(" ").forEach(function (w) { KW[w] = true; });
+  PY_BUILTINS.split(" ").forEach(function (w) { BI[w] = true; });
+  // comment | string | ____ blank | number | identifier
+  var PY_TOKEN = /(#.*)|("[^"]*"|'[^']*')|(_{3,})|(\b\d+(?:\.\d+)?(?:e[+-]?\d+)?\b)|([A-Za-z_]\w*)/g;
+
+  function highlightLine(line, out) {
+    var last = 0, m;
+    function plain(s) { if (s) out.appendChild(document.createTextNode(s)); }
+    function span(cls, s) { var e = document.createElement("span"); e.className = cls; e.textContent = s; out.appendChild(e); }
+    PY_TOKEN.lastIndex = 0;
+    while ((m = PY_TOKEN.exec(line))) {
+      plain(line.slice(last, m.index));
+      last = PY_TOKEN.lastIndex;
+      if (m[1]) span("tok-com", m[1]);
+      else if (m[2]) span("tok-str", m[2]);
+      else if (m[3]) span("tok-blank", m[3]);
+      else if (m[4]) span("tok-num", m[4]);
+      else if (KW[m[5]]) span("tok-kw", m[5]);
+      else if (BI[m[5]]) span("tok-bi", m[5]);
+      else if (line.charAt(last) === "(") span("tok-fn", m[5]);
+      else plain(m[5]);
+    }
+    plain(line.slice(last));
+  }
+
+  // Shows q.code as a numbered, highlighted block (q.lang "text" turns highlighting off).
+  function renderCode(q) {
+    els.codeBody.textContent = "";
+    els.code.hidden = !q || !q.code;
+    if (els.code.hidden) return;
+    q.code.replace(/\s+$/, "").split("\n").forEach(function (line) {
+      var row = document.createElement("span");
+      row.className = "line";
+      if (q.lang === "text") row.textContent = line;
+      else highlightLine(line, row);
+      els.codeBody.appendChild(row);
+    });
+    els.code.scrollLeft = 0;
+  }
+
   function showCard() {
     renderCounters();
     if (!els.stats.hidden) renderStats();
@@ -566,6 +628,7 @@
       els.tagWeek.textContent = ""; els.tagTopic.textContent = ""; els.tagType.textContent = "";
       els.tagAgain.hidden = true;
       els.removeBtn.hidden = true;
+      renderCode(null);
       var matching = QUESTIONS.filter(inFilter);
       var allRemoved = matching.length && matching.every(function (q) { return state.removed[q.id]; });
       els.prompt.textContent = allRemoved
@@ -583,7 +646,8 @@
     els.tagTopic.textContent = q.topic;
     els.tagType.textContent = TYPE_LABEL[q.type];
     els.tagAgain.hidden = !c.lapses;
-    els.prompt.textContent = q.prompt;
+    setRich(els.prompt, q.prompt);
+    renderCode(q);
 
     if (q.type === "fib") {
       els.fibForm.hidden = false;
@@ -597,7 +661,7 @@
         var k = document.createElement("span");
         k.className = "key"; k.textContent = String(i + 1);
         var t = document.createElement("span");
-        t.textContent = text;
+        setRich(t, text);
         b.appendChild(k); b.appendChild(t);
         b.addEventListener("click", function () { answerChoice(text); });
         b.dataset.value = text;
@@ -669,8 +733,8 @@
       : result === "close" ? "Close, but check your spelling (spelling counts on the quiz)."
       : "Not quite.";
     var alts = q.type === "fib" && q.accept && q.accept.length ? "  (also accepted: " + q.accept.join(", ") + ")" : "";
-    els.correct.textContent = "Answer: " + q.answer + alts;
-    els.explain.textContent = q.explain || "";
+    setRich(els.correct, "Answer: " + q.answer + alts);
+    setRich(els.explain, q.explain);
     els.announce.textContent = els.verdict.textContent + " " + els.correct.textContent;
 
     if (result === "right") {
